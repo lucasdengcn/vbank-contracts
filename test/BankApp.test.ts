@@ -88,7 +88,8 @@ describe("BankApp", function () {
             const receiverAddress = await this.bankApp.getAddress();
             const amount = ethers.parseEther("100");
             // will trigger receive function
-            await expect(wallet.sendTransaction({ to: receiverAddress, value: amount }))
+            const tx = await wallet.sendTransaction({ to: receiverAddress, value: amount });
+            expect(tx)
                 .emit(this.bankApp, "BankReceived")
                 .withArgs(walletAddress, receiverAddress, amount);
             // verify balance
@@ -173,6 +174,30 @@ describe("BankApp", function () {
             amountUpdated = await this.token.balanceOf(sourceAddress);
             //console.log("BankApp Balance:", amountUpdated);
             expect(amountUpdated, "BankApp Balance").to.equal(bankSourceBalance + amount);
+        });
+        it("Should Withdraw wallet balance successfully", async function () {
+            const wallet = accounts[2];
+            const walletAddress = await wallet.getAddress();
+            // states
+            const walletBalance = await this.bankApp.getBalance(walletAddress);
+            const userBalance = await ethers.provider.getBalance(walletAddress);
+            // execution
+            const amount = ethers.parseEther("10");
+            const tx = await this.bankApp.connect(wallet).withdrawWallet(amount);
+            // console.log(tx);
+            // verify
+            expect(tx, "Wallet Withdraw")
+                    .emit(walletAddress, "Transfer")
+                    .withArgs(walletAddress, amount);
+            // verify balance
+            let amountUpdated = await this.bankApp.getBalance(walletAddress);
+            expect(amount, "Wallet Balance Change").to.equal(walletBalance - amountUpdated);
+            //
+            amountUpdated = await ethers.provider.getBalance(walletAddress);
+            const offset = amountUpdated - userBalance;
+            // console.log("User Balance:", ethers.formatEther(userBalance), ethers.formatEther(amountUpdated), ethers.formatEther(offset), ethers.formatEther(tx.gasPrice));
+            // there will be some gas fee, so the amount will be less than the original amount.
+            expect(amount, "User Balance Change").to.above(offset);
         });
     });
 

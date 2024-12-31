@@ -169,4 +169,14 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         emit TokenWithdraw(_msgSender(), address(this), amount);
         return true;
     }
+
+    // withdraw balance to wallet address
+    function withdrawWallet(uint256 amount) public nonReentrant AccountRequired returns (bool) {
+        AccountsStorage storage $ = _getAccountsStorage();
+        uint256 balance = $.walletBalances[_msgSender()];
+        require(balance >= amount, "Insufficient Wallet balance");
+        $.walletBalances[_msgSender()] = balance - amount;
+        payable(_msgSender()).transfer(amount);
+        return true;
+    }
 }
