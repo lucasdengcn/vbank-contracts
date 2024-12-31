@@ -28,7 +28,9 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         mapping(address => uint256) walletBalances;
     }
     // address of bank token
-    address public bankToken;
+    address public bankTokenAddress;
+    IERC20 private bankToken;
+    IERC20Permit private bankTokenPermit;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -36,18 +38,21 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
     }
 
     // initialize function
-    function initialize(address initialOwner, address _bankToken) public initializer {
+    function initialize(address initialOwner, address _bankTokenAddress) public initializer {
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
-        bankToken = _bankToken;
+        bankTokenAddress = _bankTokenAddress;
+        //
+        bankToken = IERC20(_bankTokenAddress);
+        bankTokenPermit = IERC20Permit(_bankTokenAddress);
     }
 
-    // storage location
+    // accounts storage location
     // keccak256(abi.encode(uint256(keccak256("BankApp.storage.Accounts")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant AccountsStorageLocation =
         0x99c194d5da0fb73cf8183b37546c181862fea4cd0decd0982bb2c89abe454f00;
 
-    // get Storage
+    // get accounts Storage
     function _getAccountsStorage() private pure returns (AccountsStorage storage $) {
         assembly {
             $.slot := AccountsStorageLocation
@@ -131,7 +136,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         require(balance >= amount, "Insufficient Wallet balance");
         $.walletBalances[_msgSender()] = balance - amount;
         // transfer token to user from bankApp not bankToken
-        IERC20(bankToken).safeTransfer(_msgSender(), amount);
+        bankToken.safeTransfer(_msgSender(), amount);
         // emit event
         emit TokenExchanged(address(this), _msgSender(), amount);
         return true;
@@ -139,7 +144,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
 
     // token balance
     function getTokenBalance() public view returns (uint256) {
-        return IERC20(bankToken).balanceOf(_msgSender());
+        return bankToken.balanceOf(_msgSender());
     }
 
     // withdraw means transfer bank token from user to contract
@@ -151,11 +156,11 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         bytes32 r,
         bytes32 s
     ) public nonReentrant AccountRequired returns (bool) {
-        uint256 balance = IERC20(bankToken).balanceOf(_msgSender());
+        uint256 balance = bankToken.balanceOf(_msgSender());
         require(balance >= amount, "Insufficient Token balance");
         //
-        try IERC20Permit(bankToken).permit(_msgSender(), address(this), amount, deadline, v, r, s) {
-            IERC20(bankToken).safeTransferFrom(_msgSender(), address(this), amount);
+        try bankTokenPermit.permit(_msgSender(), address(this), amount, deadline, v, r, s) {
+            bankToken.safeTransferFrom(_msgSender(), address(this), amount);
         } catch (bytes memory data) {
             assembly {
                 // skips the length field

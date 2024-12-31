@@ -26,7 +26,7 @@ describe("BankApp", function () {
         //
         expect(await bankApp.owner()).to.equal(await accounts[1].getAddress());
         expect(await bankApp.version()).to.equal("1.0.0");
-        expect(await bankApp.bankToken()).to.equal(await token.getAddress());
+        expect(await bankApp.bankTokenAddress()).to.equal(await token.getAddress());
         //
         // console.log("BankApp:", await bankApp.getAddress(), "Token:", await token.getAddress(), "TokenProxy:", await tokenProxy.getAddress());
         const tokenBalance = await token.balanceOf(await owner.getAddress());
