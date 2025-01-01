@@ -24,3 +24,18 @@ sh scripts/deploy-local.sh
 * Exchange between asset with VBank token
 * Withdraw asset to Wallet
 * Add Liqudity
+
+## Tech Stack
+
+* Solidity
+* OpenZepplin
+* UUPS Upgrade
+* EPC20 and SafeERC20
+* EIP-712
+* ReentrancyGuardUpgradeable
+* Hardhat
+
+## Testing
+
+* ethers.js
+* typescript
