@@ -62,12 +62,17 @@ describe("BankApp", function () {
     });
 
     describe("Wallet Exchange", function () {
+        // liqudiity of tokens
         it("Prepare BankApp token balance", async function () {
+            // verify balance
+            const balance = await this.token.balanceOf(await this.bankApp.getAddress());
+            expect(balance).to.above(0);
             // transfer tokens to BankApp address for exchange.
-            const amount = ethers.parseEther("1000");
-            await expect(this.token.connect(owner).transfer(await this.bankApp.getAddress(), amount))
-                .emit(this.token, "Transfer")
-                .withArgs(await owner.getAddress(), await this.bankApp.getAddress(), amount);
+            // const amount = ethers.parseEther("1000");
+            // const address = await owner.getAddress();
+            // await expect(this.token.connect(owner).transfer(await this.bankApp.getAddress(), amount))
+            //     .emit(this.token, "Transfer")
+            //     .withArgs(address, await this.bankApp.getAddress(), amount);
         });
         it("Prepare a wallet successfully", async function () {
             const accountId = "101";

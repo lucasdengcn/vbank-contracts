@@ -1,4 +1,4 @@
-import {buildModule} from '@nomicfoundation/hardhat-ignition/modules';
+import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
 import { ethers } from "ethers";
 
 import BankTokenUUPSModule from './BankTokenUUPSModule';
@@ -13,7 +13,7 @@ const BankAppUUPSModule = buildModule("BankAppUUPSModule", (m) => {
     const { token, tokenProxy } = m.useModule(BankTokenUUPSModule);
     // call initialize after deploy proxy and implementation.
     const initialize = m.encodeFunctionCall(implementation, "initialize", [owner, token.address]);
-    const bankAppProxy = m.contract("ERC1967Proxy", [implementation, initialize]);
+    const bankAppProxy = m.contract("ERC1967Proxy", [implementation, initialize], { from: deployer });
     //
     return { bankAppProxy, tokenProxy, token };
 });
@@ -23,6 +23,11 @@ const BankAppModule = buildModule("BankAppModule", (m) => {
     const { bankAppProxy, tokenProxy, token } = m.useModule(BankAppUUPSModule);
     // get contract instance (proxy)
     const bankApp = m.contractAt("BankApp", bankAppProxy);
+    // prepare bankApp with some tokens
+    const amount = ethers.parseEther("1000"); // 100,000 ETH
+    m.call(token, "transfer", [bankApp.address, amount], {
+        from: m.getAccount(1),
+    });
     //
     return { bankApp, bankAppProxy, tokenProxy, token };
 });

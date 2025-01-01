@@ -110,7 +110,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
     }
 
     // receive transfer from users other dApps
-    receive() external payable nonReentrant AccountRequired {
+    receive() external payable nonReentrant {
         AccountsStorage storage $ = _getAccountsStorage();
         address sender = _msgSender();
         uint256 balance = $.walletBalances[sender];
@@ -126,11 +126,15 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
     }
 
     // exchange ether to bank token (1:1)
-    function exchangeTokens(uint256 amount) public nonReentrant AccountRequired returns (bool) {
+    function exchangeTokens(uint256 amount) public nonReentrant returns (bool) {
         AccountsStorage storage $ = _getAccountsStorage();
         uint256 balance = $.walletBalances[_msgSender()];
         require(balance >= amount, "Insufficient Wallet balance");
         $.walletBalances[_msgSender()] = balance - amount;
+        //
+        IERC20 token = IERC20(bankTokenAddress);
+        uint256 tokenBalance = token.balanceOf(address(this));
+        require(tokenBalance >= amount, "Insufficient Token balance");
         // transfer token to user from bankApp not bankToken
         IERC20(bankTokenAddress).safeTransfer(_msgSender(), amount);
         // emit event
@@ -151,7 +155,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public nonReentrant AccountRequired returns (bool) {
+    ) public nonReentrant returns (bool) {
         IERC20 bankToken = IERC20(bankTokenAddress);
         uint256 balance = bankToken.balanceOf(_msgSender());
         require(balance >= amount, "Insufficient Token balance");
@@ -174,7 +178,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
     }
 
     // withdraw balance to wallet address
-    function withdrawWallet(uint256 amount) public nonReentrant AccountRequired returns (bool) {
+    function withdrawWallet(uint256 amount) public nonReentrant returns (bool) {
         AccountsStorage storage $ = _getAccountsStorage();
         uint256 balance = $.walletBalances[_msgSender()];
         require(balance >= amount, "Insufficient Wallet balance");

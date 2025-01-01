@@ -21,7 +21,7 @@ contract BankToken is Initializable, OwnableUpgradeable, UUPSUpgradeable, ERC20P
         __UUPSUpgradeable_init();
         __ERC20Permit_init("FLIP");
         // Contract holds all tokens
-        _mint(address(initialOwner), amount);
+        _mint(initialOwner, amount);
     }
 
     // upgrade
