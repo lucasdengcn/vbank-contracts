@@ -1,8 +1,7 @@
-import {ethers, ignition} from "hardhat";
-import {expect, version} from "chai";
+import { ethers, ignition } from "hardhat";
+import { expect, version } from "chai";
 
 import BankAppUUPSModule from "../ignition/modules/BankAppUUPSModule";
-import BankTokenModule from "../ignition/modules/BankTokenUUPSModule";
 
 import { Signer } from "ethers";
 
@@ -42,18 +41,18 @@ describe("BankApp", function () {
             const name = "Ethers";
             const accountId = "1";
             await expect(this.bankApp.bindWallet(name, accountId, wallet.address))
-                    .to.emit(this.bankApp, "WalletBinded")
-                    .withArgs(wallet.address, accountId, name);
+                .to.emit(this.bankApp, "WalletBinded")
+                .withArgs(wallet.address, accountId, name);
         });
-    
+
         it("Should delete wallet successfully", async function () {
             const accountId = "1";
             const wallet = await this.bankApp.getWallet(accountId);
             await expect(this.bankApp.deleteWallet(accountId))
-                    .to.emit(this.bankApp, "WalletDeleted")
-                    .withArgs(wallet.addr, accountId, wallet.name);
+                .to.emit(this.bankApp, "WalletDeleted")
+                .withArgs(wallet.addr, accountId, wallet.name);
         });
-    
+
         it("Should return zero address given non-exist wallet", async function () {
             const accountId = "011111";
             const wallet = await this.bankApp.getWallet(accountId);
@@ -63,7 +62,7 @@ describe("BankApp", function () {
     });
 
     describe("Wallet Exchange", function () {
-        it("Prepare BankApp token balance", async function() {
+        it("Prepare BankApp token balance", async function () {
             // transfer tokens to BankApp address for exchange.
             const amount = ethers.parseEther("1000");
             await expect(this.token.connect(owner).transfer(await this.bankApp.getAddress(), amount))
@@ -76,8 +75,8 @@ describe("BankApp", function () {
             const walletAddress = await wallet.getAddress();
             //
             await expect(this.bankApp.bindWallet("Ethers", accountId, walletAddress))
-                    .to.emit(this.bankApp, "WalletBinded")
-                    .withArgs(walletAddress, accountId, "Ethers");
+                .to.emit(this.bankApp, "WalletBinded")
+                .withArgs(walletAddress, accountId, "Ethers");
             //
         });
         //
@@ -111,8 +110,8 @@ describe("BankApp", function () {
             // console.log(tx);
             // transfer token to bank
             expect(tx, "Token Exchange")
-                    .emit(this.bankApp, "TokenExchanged")
-                    .withArgs(sourceAddress, walletAddress, amount);
+                .emit(this.bankApp, "TokenExchanged")
+                .withArgs(sourceAddress, walletAddress, amount);
             // verify balance
             expect(await this.bankApp.getBalance(walletAddress), "Wallet Balance").to.equal(walletBalance - amount);
             expect(await this.token.balanceOf(walletAddress), "Token Balance").to.equal(amount);
@@ -128,40 +127,14 @@ describe("BankApp", function () {
             const bankSourceBalance = await this.token.balanceOf(sourceAddress);
             const userTokenBalance = await this.token.balanceOf(walletAddress);
             // prepare Inputs
-            const deadline = toDeadline(1000 * 60 * 10); // 10 minutes
-            const permitTypes = {
-                Permit: [
-                    { name: "owner", type: "address" },
-                    { name: "spender", type: "address" },
-                    { name: "value", type: "uint256" },
-                    { name: "nonce", type: "uint256" },
-                    { name: "deadline", type: "uint256" },
-                ],
-            }
-            const permitValues = {
-                owner: walletAddress,
-                spender: sourceAddress,
-                value: amount,
-                nonce: await this.token.nonces(walletAddress),
-                deadline: deadline
-            }
-            // get chain id
-            const chainId = (await ethers.provider.getNetwork()).chainId;
-            const domain = {
-                name: await this.token.name(),
-                version: "1",
-                chainId: chainId,
-                verifyingContract: await this.token.getAddress()
-            }
-            const signature = await wallet.signTypedData(domain, permitTypes, permitValues);
-            const sign = ethers.Signature.from(signature);
+            const { deadline, sign } = await getPermitSignature(walletAddress, sourceAddress, amount, wallet, this.token);
             //
             const tx = await this.bankApp.connect(wallet).withdrawTokens(amount, deadline, sign.v, sign.r, sign.s);
             // console.log(tx);
             // transfer token to bank
             expect(tx, "Token Withdraw")
-                    .emit(this.bankApp, "TokenWithdraw")
-                    .withArgs(walletAddress, sourceAddress, amount);
+                .emit(this.bankApp, "TokenWithdraw")
+                .withArgs(walletAddress, sourceAddress, amount);
             // verify balance
             let amountUpdated = await this.bankApp.getBalance(walletAddress);
             //console.log(" Wallet Balance:", amountUpdated);
@@ -187,8 +160,8 @@ describe("BankApp", function () {
             // console.log(tx);
             // verify
             expect(tx, "Wallet Withdraw")
-                    .emit(walletAddress, "Transfer")
-                    .withArgs(walletAddress, amount);
+                .emit(walletAddress, "Transfer")
+                .withArgs(walletAddress, amount);
             // verify balance
             let amountUpdated = await this.bankApp.getBalance(walletAddress);
             expect(amount, "Wallet Balance Change").to.equal(walletBalance - amountUpdated);
@@ -202,3 +175,36 @@ describe("BankApp", function () {
     });
 
 });
+
+async function getPermitSignature(walletAddress: string, sourceAddress: any, amount: bigint, wallet: Signer, token: any) {
+    // how long will the signature be valid. in 10 minutes
+    const deadline = toDeadline(1000 * 60 * 10);
+    const permitTypes = {
+        Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" },
+        ],
+    };
+    const permitValues = {
+        owner: walletAddress,
+        spender: sourceAddress,
+        value: amount,
+        nonce: await token.nonces(walletAddress),
+        deadline: deadline
+    };
+    // get chain id
+    const chainId = (await ethers.provider.getNetwork()).chainId;
+    const domain = {
+        name: await token.name(),
+        version: "1",
+        chainId: chainId,
+        verifyingContract: await token.getAddress()
+    };
+    // generate signature
+    const signature = await wallet.signTypedData(domain, permitTypes, permitValues);
+    const sign = ethers.Signature.from(signature);
+    return { deadline, sign };
+}

@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 
 import "./BankToken.sol";
 
+// wallet struct for user
 struct UserWallet {
     string id;
     string name;
@@ -29,8 +30,6 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
     }
     // address of bank token
     address public bankTokenAddress;
-    IERC20 private bankToken;
-    IERC20Permit private bankTokenPermit;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -42,9 +41,6 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
         bankTokenAddress = _bankTokenAddress;
-        //
-        bankToken = IERC20(_bankTokenAddress);
-        bankTokenPermit = IERC20Permit(_bankTokenAddress);
     }
 
     // accounts storage location
@@ -136,7 +132,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         require(balance >= amount, "Insufficient Wallet balance");
         $.walletBalances[_msgSender()] = balance - amount;
         // transfer token to user from bankApp not bankToken
-        bankToken.safeTransfer(_msgSender(), amount);
+        IERC20(bankTokenAddress).safeTransfer(_msgSender(), amount);
         // emit event
         emit TokenExchanged(address(this), _msgSender(), amount);
         return true;
@@ -144,7 +140,7 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
 
     // token balance
     function getTokenBalance() public view returns (uint256) {
-        return bankToken.balanceOf(_msgSender());
+        return IERC20(bankTokenAddress).balanceOf(_msgSender());
     }
 
     // withdraw means transfer bank token from user to contract
@@ -156,9 +152,11 @@ contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeabl
         bytes32 r,
         bytes32 s
     ) public nonReentrant AccountRequired returns (bool) {
+        IERC20 bankToken = IERC20(bankTokenAddress);
         uint256 balance = bankToken.balanceOf(_msgSender());
         require(balance >= amount, "Insufficient Token balance");
         //
+        IERC20Permit bankTokenPermit = IERC20Permit(bankTokenAddress);
         try bankTokenPermit.permit(_msgSender(), address(this), amount, deadline, v, r, s) {
             bankToken.safeTransferFrom(_msgSender(), address(this), amount);
         } catch (bytes memory data) {
