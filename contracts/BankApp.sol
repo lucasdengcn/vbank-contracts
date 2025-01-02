@@ -18,6 +18,7 @@ struct UserWallet {
     address addr;
 }
 
+// as entry point for user to interact with bank services
 contract BankApp is Initializable, ReentrancyGuardUpgradeable, ContextUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
     // state variables
