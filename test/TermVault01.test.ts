@@ -3,7 +3,7 @@ import { expect, version } from "chai";
 
 import TermVault01UUPSModule from "../ignition/modules/TermVault01UUPSModule";
 
-describe("BankTrustForwarderModule", function () {
+describe("TermVault01", function () {
 
     it("Should deploy successfully", async function () {
         const { termVault01, termVault01Proxy, trustedForwarderProxy } = await ignition.deploy(TermVault01UUPSModule);
