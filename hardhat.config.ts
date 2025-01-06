@@ -247,7 +247,15 @@ const config: HardhatUserConfig = {
   gasReporter: {
     showMethodSig: true,
     showTimeSpent: true
-  }
+  },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        // To learn more about salts, see the CreateX documentation
+        salt: "0xdff281e068e1b163cf0510b14c6194f5142dcfb563cea2dc42556621ef87d2d1",
+      },
+    },
+  },
 };
 
 export default config;

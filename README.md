@@ -31,9 +31,13 @@ sh scripts/deploy-local.sh
 * OpenZepplin
 * UUPS Upgrade
 * EPC20 and SafeERC20
+* ERC-3009
 * EIP-712
+* ERC-2612
+* ERC-2771
 * ReentrancyGuardUpgradeable
 * Hardhat
+* Create2
 
 ## Testing
 
